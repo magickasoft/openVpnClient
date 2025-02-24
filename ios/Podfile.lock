@@ -1,0 +1,28 @@
+PODS:
+  - Flutter (1.0.0)
+  - openvpn_flutter (0.0.1):
+    - Flutter
+  - permission_handler_apple (9.1.1):
+    - Flutter
+
+DEPENDENCIES:
+  - Flutter (from `Flutter`)
+  - openvpn_flutter (from `.symlinks/plugins/openvpn_flutter/ios`)
+  - permission_handler_apple (from `.symlinks/plugins/permission_handler_apple/ios`)
+
+EXTERNAL SOURCES:
+  Flutter:
+    :path: Flutter
+  openvpn_flutter:
+    :path: ".symlinks/plugins/openvpn_flutter/ios"
+  permission_handler_apple:
+    :path: ".symlinks/plugins/permission_handler_apple/ios"
+
+SPEC CHECKSUMS:
+  Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
+  openvpn_flutter: 31bba88d4f9daf1bfba7d11e943f831c442fc1d1
+  permission_handler_apple: 3787117e48f80715ff04a3830ca039283d6a4f29
+
+PODFILE CHECKSUM: 4ed5982692b183bc2a4e4cde7bc13eedd14f1b69
+
+COCOAPODS: 1.16.2
