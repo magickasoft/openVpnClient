@@ -1,128 +1,116 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:async';
+
 import 'package:openvpn_flutter/openvpn_flutter.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:provider/provider.dart';
+// import 'package:permission_handler/permission_handler.dart';
+// import 'package:provider/provider.dart';
 
-void main() => runApp(
-      ChangeNotifierProvider(
-        create: (_) => VpnState(),
-        child: MaterialApp(home: HomeScreen()),
-      ),
-    );
-
-class HomeScreen extends StatefulWidget {
-  @override
-  _HomeScreenState createState() => _HomeScreenState();
+void main() {
+  runApp(const MyApp());
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  final OpenVPN _openVpn = OpenVPN();
-  bool _isInitialized = false;
-  VpnStatus _vpnStatus = VpnStatus.empty();
+class MyApp extends StatefulWidget {
+  const MyApp({Key? key}) : super(key: key);
 
   @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late OpenVPN engine;
+  VpnStatus? status;
+  String? stage;
+  bool _granted = false;
+  @override
   void initState() {
+    engine = OpenVPN(
+      onVpnStatusChanged: (data) {
+        setState(() {
+          status = data;
+        });
+      },
+      onVpnStageChanged: (data, raw) {
+        setState(() {
+          stage = raw;
+        });
+      },
+    );
+
+    engine.initialize(
+      groupIdentifier: "group.com.laskarmedia.vpn",
+      providerBundleIdentifier:
+          "id.laskarmedia.openvpnFlutterExample.VPNExtension",
+      localizedDescription: "VPN by Nizwar",
+      lastStage: (stage) {
+        setState(() {
+          this.stage = stage.name;
+        });
+      },
+      lastStatus: (status) {
+        setState(() {
+          this.status = status;
+        });
+      },
+    );
     super.initState();
-    _initialize();
   }
 
-   Future<void> _initialize() async {
-    await _openVpn.initialize(
-      lastStatus: (status) => setState(() => _vpnStatus = status),
+  Future<void> initPlatformState() async {
+    String config = await rootBundle.loadString('assets/config.ovpn');
+    engine.connect(
+      config,
+      "USA",
+      username: defaultVpnUsername,
+      password: defaultVpnPassword,
+      certIsRequired: true,
     );
-    setState(() => _isInitialized = true);
+    if (!mounted) return;
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('VPN App')),
-      body: Center(
-        child: !_isInitialized
-            ? CircularProgressIndicator()
-            : Consumer<VpnState>(
-                builder: (context, state, _) => Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _buildStatusText(state.status),
-                    SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: () => _toggleVpn(state),
-                      child: Text(state.isConnected ? 'Disconnect' : 'Connect'),
-                    ),
-                  ],
-                ),
+    return MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(title: const Text('Plugin example app')),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(stage?.toString() ?? VPNStage.disconnected.toString()),
+              Text(status?.toJson().toString() ?? ""),
+              TextButton(
+                child: const Text("Start"),
+                onPressed: () {
+                  initPlatformState();
+                },
               ),
+              TextButton(
+                child: const Text("STOP"),
+                onPressed: () {
+                  engine.disconnect();
+                },
+              ),
+              if (Platform.isAndroid)
+                TextButton(
+                  child: Text(_granted ? "Granted" : "Request Permission"),
+                  onPressed: () {
+                    engine.requestPermissionAndroid().then((value) {
+                      setState(() {
+                        _granted = value;
+                      });
+                    });
+                  },
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
-
-  Widget _buildStatusText(VpnStatus status) {
-    return Text(
-      status.toString().split('.').last,
-      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-    );
-  }
-
-  Future<void> _toggleVpn(VpnState state) async {
-    print('_toggleVpn');
-
-    if (state.isConnected) {
-      _openVpn.disconnect();
-    } else {
-      _startVpn();
-    }
-  }
-
-  Future<void> _startVpn() async {
-    bool isConnected = await _checkPermissions();
-
-    if (!await _checkPermissions()) return;
-
-    String config = await rootBundle.loadString('assets/config.ovpn');
-
-    await _openVpn.connect(
-      config,
-      'open_vpn',
-      username: 'vpn',
-      password: 'vpn',
-      // onConnectionStatusChanged: (status) {
-      //   print('Connection Status: $status');
-      // },
-    );
-  }
-
-  Future<bool> _checkPermissions() async {
-    bool location = await Permission.location.request().isGranted;
-
-    print('location $location');
-
-    if (location) {
-      return true;
-    }
-    return false;
-  }
-
-  @override
-  void dispose() {
-    _openVpn.disconnect();
-    super.dispose();
-  }
 }
 
-
-class VpnState with ChangeNotifier {
-  VpnStatus _status = VpnStatus.empty();
-  bool _isConnected = false;
-
-  VpnStatus get status => _status;
-  bool get isConnected => _isConnected;
-
-  // Метод для обновления статуса
-  void updateStatus(VpnStatus status) {
-    _status = status;
-    _isConnected = status.connectedOn != null; // Проверка на подключение
-    notifyListeners();
-  }
-}
+const String defaultVpnUsername = "";
+const String defaultVpnPassword = "";
