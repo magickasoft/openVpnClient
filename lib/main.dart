@@ -62,7 +62,7 @@ class _MyAppState extends State<MyApp> {
     String config = await rootBundle.loadString('assets/config.ovpn');
     engine.connect(
       config,
-      "USA",
+      "thailand",
       username: defaultVpnUsername,
       password: defaultVpnPassword,
       certIsRequired: true,
@@ -112,5 +112,5 @@ class _MyAppState extends State<MyApp> {
   }
 }
 
-const String defaultVpnUsername = "";
-const String defaultVpnPassword = "";
+const String defaultVpnUsername = "vpn";
+const String defaultVpnPassword = "vpn";
